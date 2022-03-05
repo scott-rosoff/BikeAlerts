@@ -2,7 +2,8 @@ import datetime
 import logging
 
 import azure.functions as func
-from source.test_function import test_print
+from source.ScrapeAndEmail import scrape_then_email
 
 def main(mytimer: func.TimerRequest) -> None:
-    test_print()
+    scrape_then_email()
+    print("Ran BikeAlerts Azure Function")

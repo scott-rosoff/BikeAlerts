@@ -118,7 +118,7 @@ def get_email_information(keyVaultName, email_password_secret_name, sender_email
 
     return sender_email_address, sender_email_password, receiver_email_address
 
-def main():
+def scrape_then_email():
 
     # Find all endurance CF SL bike URLs (since there are multiple models) by iterating over the root path and finding relevant links
     urls = []
@@ -204,8 +204,9 @@ def main():
 
     else:
         print("Size not available")
+        print("adding test print")
     
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
