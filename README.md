@@ -13,3 +13,4 @@ The code works by grabbing html content from bike manufactuer's website using re
 1. Upgrade to OAuth 2.0 for email client
 2. Fix CI/CD issues to be able to push changes on branch which would then automatically deploy the app to Azure
 3. Refactor out email and scraping code
+4. Create db to store recipient email addresses and integrate into code
