@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 import os 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
-
+import logging
 
 # Find all mentioned links on page by iterating over the root path and finding all html tags of <a href> which indicates a link
 def get_links_on_page(root_url):
@@ -63,7 +63,7 @@ def get_size_info(content, size_html_pattern1, size_html_pattern2, size_options)
         if any(size_string.find(size_option) > -1 for size_option in size_options):
             output_sizes.append(size_string)
         else:
-            print("invalid size")
+            logging.info("invalid size")
 
     return output_sizes
 
@@ -102,23 +102,7 @@ def make_dataframe(model, bike_sizes, bike_availabilities, url):
     output_df.loc[output_df.availability == 'In-Stock', 'isCurrentlyAvailable'] = True
     return output_df
 
-def get_email_information(keyVaultName, email_password_secret_name, sender_email_address_secret_name, receiver_email_address_secret_name):
-    
-    # Grab azure keyvault secret for authorizing email
-    KVUri = f"https://{keyVaultName}.vault.azure.net"
-
-    credential = DefaultAzureCredential()
-    client = SecretClient(vault_url=KVUri, credential=credential)
-
-    # Return passwords and email addresses
-    sender_email_address= client.get_secret(sender_email_address_secret_name).value
-    sender_email_password = client.get_secret(email_password_secret_name).value
-    receiver_email_address = client.get_secret(receiver_email_address_secret_name).value
-
-    return sender_email_address, sender_email_password, receiver_email_address
-
-def scrape_then_email():
-
+def scrape_in_stock_models():
     # Find all endurance CF SL bike URLs (since there are multiple models) by iterating over the root path and finding relevant links
     urls = []
     all_cf_sl_links = get_links_on_page('https://www.canyon.com/en-us/road-bikes/endurance-bikes/endurace/cf-sl/#sections-products')
@@ -146,12 +130,12 @@ def scrape_then_email():
     all_outputs = []
     for bike_url in urls:
         model = get_bike_model_name(bike_url).group(1)
-        print("Processing model: " + model)
+        logging.info("Processing model: " + model)
         contents = get_page_contents(bike_url)
         output_sizes = get_size_info(contents, size_string_pattern1, size_string_pattern2, size_options)
         output_availability = get_availability_info(contents, stock_string_pattern)
         if len(output_sizes) != len(output_availability):
-            print("Data not matching") 
+            logging.info("Data not matching") 
 
         each_output_df = make_dataframe(model, output_sizes, output_availability, bike_url)    
         all_outputs.append(each_output_df)
@@ -161,21 +145,33 @@ def scrape_then_email():
     # Filter to any smalls in stock and send an email report if there are any
     SIZE_WANTED = 'S'
     in_stock_models =  output_df[(output_df['bike_size'] == SIZE_WANTED) & (output_df.isCurrentlyAvailable == True)]
+    return in_stock_models
+
+
+def send_email_report(in_stock_models):
+
+    # only send mail if we found models in stock
     send_email = in_stock_models.shape[0] > 0 
+    logging.info("Send email?: " + str(send_email))
 
     # grab email addresses and passwords from Azure KeyVault
+    # First, set up client connection using an existing Service Principal (some info is stored in environment variables)
+
     keyVaultName = "bikealertkeyvault"
-    email_password_secret_name = "emailSenderPassword"
-    sender_email_address_secret_name = 'SenderEmailAddress'
-    receiver_email_address_secret_name = 'ScottsEmailAddress' # change this later to Henry's email. And add it as a secret to KV
-    sender_email_address, sender_email_password, receiver_email_address = get_email_information(keyVaultName, 
-    email_password_secret_name, sender_email_address_secret_name, receiver_email_address_secret_name
-    )
+    KVUri = f"https://{keyVaultName}.vault.azure.net"
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=KVUri, credential=credential)
+
+    emailSenderAddress= client.get_secret('SenderEmailAddress').value
+    emailSenderPassword = client.get_secret('emailSenderPassword').value
+    scottsEmailAddress = client.get_secret('ScottsEmailAddress').value
+    henrysEmailAddress = client.get_secret('HenrysEmailAddress').value
+
 
     # Create email message
     msg = MIMEMultipart()
     msg['Subject'] = "Canyon Bike Alert"
-    msg['From'] = sender_email_address
+    msg['From'] = emailSenderAddress
 
 
     html = """\
@@ -190,6 +186,7 @@ def scrape_then_email():
     part1 = MIMEText(html, 'html')
     msg.attach(part1)
 
+
     # Send email report if there's stock using gmail 
     if send_email:
         port = 465  # For SSL
@@ -198,14 +195,14 @@ def scrape_then_email():
         context = ssl.create_default_context()
 
         with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-            server.login(sender_email_address, sender_email_password)
-            server.sendmail(sender_email_address, receiver_email_address, msg.as_string())
+            server.login(emailSenderAddress, emailSenderPassword)
+            # Send mail to both scott & henry
+            server.sendmail(emailSenderAddress, scottsEmailAddress, msg.as_string())
+            server.sendmail(emailSenderAddress, henrysEmailAddress, msg.as_string())
 
     else:
-        print("Size not available")
-        print("adding test print")
+        logging.info("Size not available")
+    
+    return
     
 
-
-# if __name__ == "__main__":
-#     main()
