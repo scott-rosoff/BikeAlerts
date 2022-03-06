@@ -102,7 +102,6 @@ def make_dataframe(model, bike_sizes, bike_availabilities, url):
     output_df.loc[output_df.availability == 'In-Stock', 'isCurrentlyAvailable'] = True
     return output_df
 
-
 def get_email_information(keyVaultName, email_password_secret_name, sender_email_address_secret_name, receiver_email_address_secret_name):
     
     # Grab azure keyvault secret for authorizing email
