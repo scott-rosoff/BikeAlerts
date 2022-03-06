@@ -8,3 +8,8 @@ This was a fun side project to get more familiar with using Azure Functions. It'
 ### How it works
 The code works by grabbing html content from bike manufactuer's website using requests/BeautifulSoup, parsing out bike sizes and availabiliies we're looking for with regex, and then sending an email to customers who want to be alerted when a certain size is in stock for a given model using gmail email client and Azure KeyVault for storing sensitive information. It's hosted in Azure and runs every 5 minutes using Azure Functions CRON scheduler.
 
+
+### To do:
+1. Upgrade to OAuth 2.0 for email client
+2. Fix CI/CD issues to be able to push changes on branch which would then automatically deploy the app to Azure
+3. Refactor out email and scraping code
