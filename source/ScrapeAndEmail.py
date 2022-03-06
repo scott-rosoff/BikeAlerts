@@ -157,7 +157,7 @@ def send_email_report(in_stock_models):
     # grab email addresses and passwords from Azure KeyVault
     # First, set up client connection using an existing Service Principal (some info is stored in environment variables)
 
-    keyVaultName = "bikealertkeyvault"
+    keyVaultName = ""
     KVUri = f"https://{keyVaultName}.vault.azure.net"
     credential = DefaultAzureCredential()
     client = SecretClient(vault_url=KVUri, credential=credential)
