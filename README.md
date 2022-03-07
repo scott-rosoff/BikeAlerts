@@ -14,3 +14,4 @@ The code works by grabbing html content from bike manufactuer's website using re
 2. Fix CI/CD issues to be able to push changes on branch which would then automatically deploy the app to Azure
 3. Refactor out email and scraping code
 4. Create db to store recipient email addresses and integrate into code
+5. Create db  to track whether an email was already sent to a recipeient for a given bike in stock (once you got an initial email a bike is in stock, we don't want to repeat the emails)
